@@ -3,35 +3,32 @@ package com.sumin.shoppinglist.presentation
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
-import android.widget.Button
-import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.ViewModelProvider
-import com.google.android.material.textfield.TextInputLayout
 import com.sumin.shoppinglist.R
-import com.sumin.shoppinglist.presentation.secondscreen.ShopItemViewModel
+import com.sumin.shoppinglist.domain.ShopItem
+import com.sumin.shoppinglist.presentation.Fragments.ShopItemFragment
 
 class ShopItemActivity : AppCompatActivity() {
 
-    private lateinit var viewModel: ShopItemViewModel
-
-    private lateinit var tilName: TextInputLayout
-    private lateinit var tilCount: TextInputLayout
-    private lateinit var etName: EditText
-    private lateinit var etCount: EditText
-    private lateinit var buttonSave: Button
-
-    private var screenMode = ""
-    private var shopItemId = -1
+    private var screenMode = MODE_UNKNOWN
+    private var shopItemId = ShopItem.UNDEFINED_ID
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_shop_item)
-        viewModel = ViewModelProvider(this)[ShopItemViewModel::class.java]
-        initViews()
-        val mode = intent.getStringExtra(EXTRA_SCREEN_MODE)
-        Log.d("ShopItemActivity1", mode.toString())
+        parseIntent()
+        if (savedInstanceState == null) {
+            launchMode()
+        }
+    }
+
+    private fun launchMode() {
+        val fragment = when (screenMode) {
+            MODE_EDIT -> ShopItemFragment.newInstanceEditItem(shopItemId)
+            MODE_ADD -> ShopItemFragment.newInstanceAddItem()
+            else -> throw RuntimeException("Unknown screen mode $screenMode")
+        }
+        supportFragmentManager.beginTransaction().add(R.id.shopItemId, fragment).commit()
     }
 
     private fun parseIntent() {
@@ -39,29 +36,22 @@ class ShopItemActivity : AppCompatActivity() {
             throw RuntimeException("Param screen mode is absent")
         }
         val mode = intent.getStringExtra(EXTRA_SCREEN_MODE)
-        if (mode != MODE_EDIT && mode != MODE_EDIT) throw RuntimeException("Unknown screen mod $mode")
+        if (mode != MODE_EDIT && mode != MODE_ADD) throw RuntimeException("Unknown screen mod $mode")
         screenMode = mode
         if (screenMode == MODE_EDIT) {
             if (!intent.hasExtra(EXTRA_SHOP_ITEM_ID))
                 throw RuntimeException("Param shop mode is absent")
-                shopItemId = intent.getIntExtra(EXTRA_SHOP_ITEM_ID, -1)
+            shopItemId = intent.getIntExtra(EXTRA_SHOP_ITEM_ID, shopItemId)
         }
-    }
-
-    private fun initViews() {
-        tilName = findViewById(R.id.til_name)
-        tilCount = findViewById(R.id.til_count)
-        etName = findViewById(R.id.et_name)
-        etCount = findViewById(R.id.et_count)
-        buttonSave = findViewById(R.id.save_button)
     }
 
     companion object {
 
         const val EXTRA_SCREEN_MODE = "extra_mode"
-        const val MODE_ADD = "mode_add"
-        const val MODE_EDIT = "mode_edit"
         const val EXTRA_SHOP_ITEM_ID = "extra_shop_item_id"
+        const val MODE_EDIT = "mode_edit"
+        const val MODE_ADD = "mode_add"
+        const val MODE_UNKNOWN = ""
 
         fun newIntentAddItem(context: Context): Intent {
             val intent = Intent(context, ShopItemActivity::class.java)
